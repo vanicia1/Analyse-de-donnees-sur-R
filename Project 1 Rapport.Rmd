@@ -1,0 +1,358 @@
+---
+title: "Project 1 Analyse de donnees"
+author: "Vanicia Gisnel Moumpala Zingoula"
+date: "2024-2025"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+# [**Projet 1 : Analyse de données**]{.underline}
+
+## [Introduction]{.underline}
+
+Ce projet d’analyse de données a pour objectif d’explorer et d’analyser des jeux de données en utilisant le langage de programmation R. Les jeux de données concernent des sujets variés : les licences d'animaux de compagnie de Seattle, la composition chimique des tourbières formées par la sphaigne, et la durée de thèse selon les domaines scientifiques. Les analyses incluent des calculs statistiques, des manipulations de données, et des visualisations graphiques permettant d'interpréter les résultats.
+
+## [Exercice 1: Noms des animaux de compagnie de la ville de Seattle]{.underline}
+
+#### Question 1 : Chargement des données
+
+Pour charger le fichier des licences des animaux de Seattle, nous utilisons la commande suivante dans R :
+
+```{r}
+dat =read.table("Pet_Licenses.txt", sep=",", header=TRUE, stringsAsFactors=TRUE, quote="\"", fill=TRUE)
+```
+
+Cette commande lit le fichier `Pet_Licenses.txt`, où les colonnes sont séparées par des virgules (`sep=","`) et le fichier contient une ligne d'en-tête (`header=TRUE`). La fonction `stringsAsFactors=TRUE` permet de traiter les chaînes de caractères comme des facteurs, et `quote="\""` spécifie que les guillemets doubles sont utilisés pour entourer les chaînes de caractères.
+
+#### Question 2 : Nombres de variables et d'individus
+
+Nous pouvons obtenir les dimensions du jeu de données avec la fonction `dim` :
+
+```{r}
+dim(dat)
+```
+
+Ce jeu de données contient 7 variables et 43683 individus.
+
+#### Question 3 : Nombre de modalités de la variable species et le nombre d’individus possédant chaque modalité
+
+```{r}
+table(dat$Species)
+```
+
+Cela signifie qu'il y a 4 modalités dans la variable `species` : **Chat**, **Chien**, **Chèvre** et **Cochon**, avec les fréquences suivantes :
+
+-   **Chat** : 13,935 individus
+
+-   **Chien** : 29,729 individus
+
+-   **Chèvre** : 16 individus
+
+-   **Cochon** : 3 individus
+
+#### Question 4: 10 noms de chien et les 10 noms de chat les plus populaires.
+
+Les 10 noms de chien les plus populaires
+
+```{r}
+sort(table(dat$Animal.s.Name[dat$Species=="Dog"]),decreasing = TRUE)[1:10]
+```
+
+Les 10 noms de chat les plus populaires
+
+```{r}
+sort(table(dat$Animal.s.Name[dat$Species=="Cat"]),decreasing = TRUE)[1:10] 
+```
+
+Les 5 races primaires de chien les plus populaires.
+
+```{r}
+sort(table(dat$Primary.Breed[dat$Species=="Dog"]),decreasing = TRUE)[1:5]
+```
+
+#### Question 5: Liste des noms et races de chien les plus populaires
+
+Pour créer des listes des 30 noms de chiens et des 30 races primaires de chiens les plus populaires, nous utilisons les fonctions `sort` et `table` :
+
+```{r}
+dat_Dog =names(sort(table(dat$Animal.s.Name[dat$Species=="Dog"]),decreasing = TRUE)[1:30])
+dat_Dog
+```
+
+```{r}
+dat_Dog_Breed =names(sort(table(dat$Primary.Breed[dat$Species=="Dog"]),decreasing = TRUE)[1:30])
+dat_Dog_Breed
+
+```
+
+Nous pouvons ensuite filtrer les données pour ne conserver que les licences des chiens dont le nom et la race sont parmi les 30 plus populaires :
+
+```{r}
+dat_pop = dat[dat$Animal.s.Name %in% dat_Dog & dat$Primary.Breed %in% dat_Dog_Breed,]
+names(dat_pop)
+```
+
+#### Question 6: Retrait des modalités inutilisées
+
+Pour retirer les modalités inutilisées dans les variables `Animal.s.Name` et `Primary.Breed`, nous utilisons la fonction `droplevels` :
+
+```{r}
+dat_pop$Animal.s.Name= droplevels(dat_pop$Animal.s.Name)
+dat_pop$Primary.Breed= droplevels(dat_pop$Primary.Breed)
+```
+
+Ensuite, pour vérifier que ces variables ne contiennent plus que 30 modalités, nous utilisons `levels` :
+
+```{r}
+length(levels(dat_pop$Animal.s.Name))
+length(levels(dat_pop$Primary.Breed))
+```
+
+#### Question 7 : La table de contingence entre les variables Animal.s.Name et Primary.Breed sur les données de dat_pop
+
+```{r}
+table_ctg=table(dat_pop$Animal.s.Name,dat_pop$Primary.Breed)
+
+```
+
+Carte de chaleur avec la fonction heatmap.
+
+```{r}
+heatmap(table_ctg)
+```
+
+#### Question 8: Observation
+
+En examinant la carte de chaleur générée, nous pouvons observer que le nom "Milo" est le plus populaire pour les Retriever, Labrador et les noms "Ollie" et "Leo" sont les plus populaires pour les Retriever, Labrador et les Retriever, Golden.
+
+#### Question 9: Analyse Factorielle des Correspondances (AFC)
+
+Nous effectuons l’AFC sur la table de contingence avec la fonction `CA` du package `FactoMineR`
+
+```{r}
+library(FactoMineR)
+res= CA(table_ctg, graph= FALSE )
+plot(res)
+```
+
+```{r}
+rowSums(res$row$cos2[,1:2])
+rowSums(res$col$cos2[,1:2])
+```
+
+L’AFC réalisée présente un pourcentage d’inertie de 22,57%, ce qui est relativement faible. Cela signifie que seulement 22,57% de la variabilité dans les données est expliquée par les deux premières dimensions. Par conséquent, la capacité de l’AFC à représenter les relations entre les modalités est limitée. Toutefois, les valeurs des cosinus carrés (`cos2`) montrent que :
+
+-   **Noms de chiens assez bien représentés** : *Coco* (0.57), *Leo* (0.35), *Ruby* (0.33), et *Sadie* (0.35) ont des valeurs de cos2 relativement élevées, suggérant qu'ils sont bien représentés par les deux premières dimensions.
+
+-   **Races de chiens assez bien représentées** : *German Shepherd* (0.64), *Bulldog, French* (0.41), et *Welsh Corgi, Pembroke* (0.33) montrent également une bonne représentation.
+
+-   **Noms de chiens tres faiblement représentés** : En revanche, certains noms comme *Jack* (0.027) ou *Max* (0.034) ont des cos2 très faibles, indiquant que les deux premières dimensions de l’AFC ne capturent pas bien la variabilité de ces noms.
+
+-   **Races de chiens tres faiblement représentées** : Des races comme *Spaniel, Cavalier King Charles* (0.0016) ou *Boxer* (0.0178) sont aussi mal représentées dans ces deux dimensions, ce qui signifie que leur variabilité est expliquée par des dimensions supérieures.
+
+## [Exercice 2: Qualité des tourbières formées par la sphaigne]{.underline}
+
+#### Question 1: Chargement des données
+
+Pour charger le fichier des licences des animaux de Seattle, nous utilisons la commande suivante dans R :
+
+```{r}
+dat = read.table("moss.txt", sep=",",header = TRUE,row.names =1 , stringsAsFactors =TRUE)
+
+```
+
+Cette commande lit le fichier `moss.txt`, où les colonnes sont séparées par des virgules (`sep=","`) et le fichier contient une ligne d'en-tête (`header=TRUE`). La fonction `stringsAsFactors=TRUE` permet de traiter les chaînes de caractères comme des facteurs, et `quote="\""` spécifie que les guillemets doubles sont utilisés pour entourer les chaînes de caractères.
+
+#### Question 2: Dimensions et structure des données
+
+Nous pouvons obtenir les dimensions du jeu de données avec la fonction `dim` ; la fonction unique retire les doublons pour donner les valeurs distinctes dans un ensemble et la fonction length compte le nombre d’éléments dans un ensemble, et lorsqu’il est combiné avec `unique`, donne le nombre de valeurs uniques.
+
+```{r}
+dim(dat)
+length(unique(dat$species.name))
+length(unique(dat$section))
+```
+
+Il y a 90 individus , 29 variables, 15 espèces et 4 sous-genres de sphaigne différents apparaissant dans le jeu de données.
+
+#### Question 3: Création d'un jeu de données
+
+Nous avons créé un sous-ensemble de données `dat2`, ne gardant que les variables HC_mg_g, sphagn_litter_mg_g, phenolics_TA_mg_g, KL_mg_g, solubleKL_perc_of_totalKL, totalKL_mg_g et CEC_meq_g.
+
+```{r}
+dat2 = dat[, c("HC_mg_g", "sphagn_litter_mg_g", "phenolics_TA_mg_g", "KL_mg_g", 
+                "solubleKL_perc_of_totalKL", "totalKL_mg_g", "CEC_meq_g")]
+```
+
+#### Question 4: Calcul de la matrice de corrélation
+
+Nous avons utilisé `cor()` pour calculer la matrice de corrélation de `dat2`, avec `use = "pairwise.complete.obs"` pour exclure les paires incomplètes. La fonction `round()` a ensuite arrondi les coefficients à trois chiffres, facilitant la lecture et la comparaison avec la matrice de l’article.
+
+```{r}
+R =round(cor(dat2,use ="pairwise.complete.obs"),digits = 3) 
+R
+```
+
+#### Question 5: Comparaison
+
+En comparant les deux tables de corrélations, on remarque des incohérences dans la Table 3. Par exemple, la corrélation entre **Holocellulose mg g⁻¹** et **Total Klason lignin mg g⁻¹** est indiquée comme **0.004** dans la table obtenue, mais **-0.004** dans la Table 3, ce qui constitue une inversion de signe erronée. De plus, certaines corrélations sont mises en gras dans la Table 3 pour indiquer leur signification statistique, mais cela semble incorrect pour des valeurs comme **Holocellulose** et **Sphagnan** (0.268), qui ne paraissent pas statistiquement significatives (ne respecte pas le critère P < 0.05). Ces erreurs suggèrent une transcription ou un arrondi incorrect des données d'origine par les auteurs/autrices.
+
+
+#### Question 6: Creation d'un sous-ensemble de données
+
+Nous avons créé un autre sous-ensemble `dat3` en conservant seulement certaines variables et en renommant les colonnes pour simplifier l'analyse. **`colnames()`**: cette ligne permet de renommer les colonnes selon les noms proposés.
+
+```{r}
+dat3 = dat[, c("HC_mg_g", "sphagn_litter_mg_g", "phenolics_TA_mg_g", "totalKL_mg_g", "species.code", "CEC_meq_g")]
+colnames(dat3) = c("holocellulose", "sphagnan", "soluble phenolics", "total Klason lignin", "species_code", "CEC")
+```
+
+#### Question 7: Retrait les lignes comprenant des valeurs manquantes
+
+Pour éliminer les lignes contenant des valeurs manquantes, nous avons utilisé la fonction `complete.cases()` qui renvoie un vecteur logique indiquant si chaque ligne est complète ou non.
+
+```{r}
+dat3 = dat3[complete.cases(dat3),]
+sum(is.na(dat3))
+```
+
+#### Question 8: Application de l’ACP
+
+L’analyse en composantes principales (ACP) a été effectuée sur les données en considérant toutes les variables quantitatives comme étant active et la variable qualitative comme étant supplémentaire.
+
+```{r}
+library(FactoMineR)
+res=PCA(dat3[,1:6],quali.sup = 5,graph = FALSE)
+```
+
+```{r}
+plot(res,choix = "var")
+```
+
+Comparaison: 
+
+Les deux cercles montrent les mêmes variables : holocellulose, sphagnan, CEC, total_Klason lignin, et soluble phenolics et la disposition des variables est identique dans les deux cas.
+De plus les deux axes expliquent environ le même pourcentage de variance :
+Dim 1/PC1 : ~51-52%
+Dim 2/PC2 : ~22%
+Ce qui renforce la fiabilité et la validité de mes resultats.
+
+#### Quesion 9: Le pourcentage d'inertie
+
+Le pourcentage d'inertie de 73,8 % indique qu'une grande partie de la variance totale dans les données est expliquée par les deux premières dimensions de l'analyse en composantes principales (ACP). Ce pourcentage élevé montre que les variables sont bien représentées.
+
+#### Question 10: Visualisation des individus
+
+```{r}
+plot(res ,choix ="ind",invisible = "ind")
+```
+Comparaison:
+Le nuage des individus est identique à celui de la Figure 2 du papier.
+
+
+#### Question 11: Interpretation des resultats
+
+Sur ce graphique :
+
+-   Les espèces du sous-genre **Acutifolia** se trouvent dans la zone **à droite**.
+
+-   Les espèces du sous-genre **Cuspidata** se situent dans la zone **à gauche**.
+
+-   Les espèces du sous-genre **Sphagnum** sont positionnées dans la zone **en bas**.
+
+#### Question 12: Interpretation des resultats
+
+Ces différences de position sur le graphique traduisent des variations dans les compositions métaboliques entre les sous-genres. Chaque groupe semble adapté à un environnement spécifique, influençant sa capacité à retenir l'eau, à résister à la décomposition et à contribuer aux caractéristiques uniques des tourbières formées par la sphaigne. Ces adaptations métaboliques sont essentielles pour la survie des plantes dans différents microenvironnements au sein des tourbières.
+
+### [Exercice 3: Durée de thèse selon les domaines scientifiques]{.underline}
+
+#### Question 1: Chargement des données
+
+Pour charger le fichier des licences des animaux de Seattle, nous utilisons la commande suivante dans R
+
+```{r}
+dat = read.table("fr-esr-effectifs-doctorants-docteurs-ecoles-doctorales-durees-these-domaines.csv", header =TRUE, sep=";", stringsAsFactors =TRUE, quote ="\"")
+```
+
+Cette commande lit le fichier fr-esr-effectifs-doctorants-docteurs-ecoles-doctorales-durees-these-domaines.csv, où les colonnes sont séparées par des virgules (`sep=","`) et le fichier contient une ligne d'en-tête (`header=TRUE`). La fonction `stringsAsFactors=TRUE` permet de traiter les chaînes de caractères comme des facteurs, et `quote="\""` spécifie que les guillemets doubles sont utilisés pour entourer les chaînes de caractères.
+
+#### Question 2: Nombres de variables et d'individus
+
+Nous pouvons obtenir les dimensions du jeu de données avec la fonction `dim` :
+
+```{r}
+dim(dat)
+```
+
+Il y a 90 individus et 29 variabbles .
+
+#### Question 3: Filtrage des données et dénombrement des modalités
+
+Nous avons utilisé `droplevels()` : pour supprimer les niveaux de facteurs inutilisés dans `dat` après le filtrage, en particulier les niveaux de `DOMAINE_SCIENTIFIQUE` qui ne sont plus présents dans les données.
+
+```{r}
+dat=droplevels(dat[dat$DOMAINE_SCIENTIFIQUE!="",])
+```
+
+Nous avons utilisé `levels(dat$DOMAINE_SCIENTIFIQUE)` : extrait les niveaux distincts de `DOMAINE_SCIENTIFIQUE`, qui correspondent aux différents domaines scientifiques dans les données.
+
+```{r}
+length(levels(dat$DOMAINE_SCIENTIFIQUE))
+```
+
+#### Question 4: Création d'une table de contingence initiale
+
+```{r}
+tab = array(0,dim=c(10,4))
+tab
+```
+
+#### Question 5: Remplissage de la table de contingence
+
+Pour remplir la table de contingence `tab` avec les totaux des durées de thèse par domaine scientifique. On commence par créer `dat2`, un sous-ensemble contenant uniquement les colonnes pertinentes. Ensuite, pour chaque domaine, on filtre `dat2` pour extraire les données spécifiques et utilise `colSums` pour calculer les totaux par catégorie de durée en ignorant les valeurs manquantes. Ces totaux sont stockés dans `v`, puis ajoutés à la ligne correspondante de `tab`, créant ainsi un tableau regroupant les effectifs de doctorants par durée et domaine de thèse.
+
+```{r}
+dat2 = dat[,c(5,19,20,21,22)]
+for (i in 1:length(levels(dat$DOMAINE_SCIENTIFIQUE))){
+  dat3 = dat2[dat2$DOMAINE_SCIENTIFIQUE==levels(dat2$DOMAINE_SCIENTIFIQUE)[i],]
+  v = c(colSums(dat3[2:5],na.rm = TRUE))
+  tab[i,] = v
+}
+```
+
+#### Question 6: Conversion en table de contingence avec noms
+
+Les functions `as.table(tab)` convertit `tab` en table de contingence et `rownames()` et `colnames()` ajoutent les noms des domaines et des catégories de durée.
+
+```{r}
+row.names(tab) = levels(dat$DOMAINE_SCIENTIFIQUE)
+
+colnames(tab) = c("<40 mois", "40-52 mois", "52-72 mois", ">6 ans")
+
+tab_contingence = as.table(tab)
+
+print(tab_contingence)
+
+```
+
+#### Question 7: Analyse Factorielle des Correspondances (AFC)
+
+Nous effectuons l’AFC sur la table de contingence avec la fonction `CA` du package `FactoMineR`
+
+```{r}
+library(FactoMineR)
+res= CA(tab_contingence, graph= FALSE )
+plot(res)
+```
+
+```{r}
+rowSums(res$row$cos2[,1:2])
+rowSums(res$col$cos2[,1:2])
+```
+
+L’AFC réalisée présente un pourcentage d’inertie de 99.89%. L'axe 1 explique 95,99 % de la variation, tandis que l'axe 2 en explique 3,9 %. La forte proportion d'inertie expliquée par le premier axe indique qu'il capture la majeure partie des différences dans la durée des thèses entre les domaines.
+
+On observe que les domaines comme "Sciences de la société" et "Lettres et langues et humanités" sont proches de la catégorie "\> 6 ans", ce qui indique que ces disciplines tendent à avoir des durées de thèse plus longues. En revanche, les domaines comme "Physique", "Mathématiques et leurs interactions", et "Chimie" sont davantage associés à des thèses de courte durée (\< 40 mois), ce qui signifie que les doctorants dans ces disciplines complètent souvent leur thèse plus rapidement. Les domaines comme "Sciences agronomiques et écologiques" et "Sciences et technologies de l'information" se situent près de la catégorie "40-52 mois", suggérant des durées de thèse modérées dans ces disciplines.
